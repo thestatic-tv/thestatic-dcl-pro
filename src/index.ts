@@ -1,16 +1,35 @@
 /**
- * thestatic.tv DCL SDK Example Scene
+ * ============================================================================
+ * thestatic.tv DCL SDK - PRO Tier Template
+ * ============================================================================
  *
- * A showcase scene demonstrating the @thestatic-tv/dcl-sdk features:
- * - Visitor tracking (all tiers)
- * - Guide UI with channel browser (Standard/Pro)
- * - Chat UI with real-time messaging (Standard/Pro)
+ * This is the PRO tier template with ALL SDK features:
+ * - Video screen with automatic fallback video
+ * - Guide UI for browsing channels
+ * - Chat UI for real-time messaging
+ * - Admin Panel for video/mod controls (PRO EXCLUSIVE)
+ * - Visitor tracking and analytics
  *
- * Get your key at: https://thestatic.tv/dashboard
- * All keys use dcls_ prefix. Features determined by your subscription:
- * - Free: Visitor tracking only
- * - Standard: Guide UI, Chat UI, heartbeat tracking, and interactions
- * - Pro: Everything in Standard + Admin Panel
+ * SDK TIERS:
+ * - FREE ($0):      Session tracking only
+ * - STANDARD ($10): Video + Guide + Chat
+ * - PRO ($15):      + Admin Panel - THIS TEMPLATE
+ *
+ * QUICK START:
+ * 1. npm install
+ * 2. npm start
+ * 3. Scene works immediately with demo key!
+ *
+ * USE YOUR OWN KEY:
+ * 1. Get key at https://thestatic.tv/dashboard
+ * 2. Replace 'dcls_YOUR_API_KEY_HERE' below with your key
+ *
+ * VIDEO SCREEN SETUP (IMPORTANT):
+ * The SDK manages VideoPlayer, but YOU must set up the video texture material.
+ * See the main() function for how this works - material MUST be applied
+ * AFTER SDK initialization, not at module level.
+ *
+ * ============================================================================
  */
 import {
   engine,
@@ -31,69 +50,59 @@ import ReactEcs, { ReactEcsRenderer, UiEntity } from '@dcl/sdk/react-ecs'
 import { openExternalUrl } from '~system/RestrictedActions'
 import { StaticTVClient, GuideVideo } from '@thestatic-tv/dcl-sdk'
 
+// Demo key resolver - DELETE demo-config.ts when using your own key
+import { getDemoKey } from './demo-config'
+
 // ============================================
 // LINKS
 // ============================================
 const LINKS = {
   dashboard: 'https://thestatic.tv/dashboard',
-  github: 'https://github.com/thestatic-tv/thestatic-dcl-popup'
+  github: 'https://github.com/thestatic-tv/thestatic-dcl-pro'
 }
 
 // ============================================
 // CONFIGURATION
 // ============================================
-// Video player settings
-const videoConfig = {
-  codec: 'video-player',
-  stream: 'EgoIFjAVRA5VG1MQQ10AUgodE10FGlVAQllQAAwZRlpST1QUQg=='
-}
-
-function initVideoConfig(cfg: { codec: string; stream: string }): string {
-  const decoded = atob(cfg.stream)
-  let result = ''
-  for (let i = 0; i < decoded.length; i++) {
-    result += String.fromCharCode(decoded.charCodeAt(i) ^ cfg.codec.charCodeAt(i % cfg.codec.length))
-  }
-  return result
-}
-
-// Get your own key at thestatic.tv/dashboard
-const resolveKey = (k: string) => k && !k.includes('YOUR_API_KEY') ? k : initVideoConfig(videoConfig)
-
 // Replace with your own key from thestatic.tv/dashboard
-const API_KEY = resolveKey('dcls_YOUR_API_KEY_HERE')
+// Delete demo-config.ts and use your key directly: apiKey: 'dcls_YOUR_ACTUAL_KEY'
+const API_KEY = getDemoKey('dcls_YOUR_API_KEY_HERE')
 
-// ============================================
+// ============================================================================
 // VIDEO SCREEN SETUP
-// ============================================
+// ============================================================================
+//
+// HOW VIDEO SCREENS WORK WITH THE SDK:
+//
+// 1. YOU create the screen entity (position, scale, mesh - your choice!)
+// 2. YOU pass it to SDK via: videoScreen: yourEntity
+// 3. SDK creates VideoPlayer and handles: fallback video, stream verification,
+//    CONNECTING/OFFLINE states, and video switching from Guide
+// 4. YOU apply the video texture material in main() AFTER SDK init
+//
+// WHY? The SDK only manages VideoPlayer. You control the material appearance
+// (emissive glow, roughness, etc). This lets you customize how your screen looks.
+//
+// ============================================================================
 
-// Create video screen entity (will be positioned later in scene setup)
+// Create video screen entity (positioned later in scene setup section below)
 const videoScreen = engine.addEntity()
 const videoScreenFrame = engine.addEntity()
 const videoScreenLabel = engine.addEntity()
 
-// Handle video selection from Guide UI
+/**
+ * Handle video selection from Guide UI
+ *
+ * IMPORTANT: The SDK handles video playback automatically!
+ * This callback is ONLY for your custom scene logic like:
+ * - Updating labels/text
+ * - Starting heartbeat tracking
+ * - Any other scene-specific behavior
+ *
+ * DO NOT call VideoPlayer.createOrReplace here - SDK does that for you.
+ */
 function handleVideoSelect(video: GuideVideo) {
   console.log('[thestatic.tv] Video selected:', video.name)
-  console.log('[thestatic.tv] Stream URL:', video.src)
-
-  // Update the video player with new source
-  VideoPlayer.createOrReplace(videoScreen, {
-    src: video.src,
-    playing: true,
-    loop: true,
-    volume: 0.8
-  })
-
-  // Apply video texture to screen material
-  Material.setPbrMaterial(videoScreen, {
-    texture: Material.Texture.Video({ videoPlayerEntity: videoScreen }),
-    roughness: 1.0,
-    metallic: 0,
-    emissiveColor: Color4.White(),
-    emissiveIntensity: 0.5,
-    emissiveTexture: Material.Texture.Video({ videoPlayerEntity: videoScreen })
-  })
 
   // Update the label to show current video name
   TextShape.getMutable(videoScreenLabel).text = video.name
@@ -103,7 +112,7 @@ function handleVideoSelect(video: GuideVideo) {
     staticTV.guideUI.currentVideoId = video.id
   }
 
-  // Start heartbeat tracking if available
+  // Start heartbeat tracking if available (tracks watch time)
   if (staticTV.heartbeat && video.channelId) {
     staticTV.heartbeat.startWatching(video.channelId)
   }
@@ -116,9 +125,9 @@ let staticTV: StaticTVClient
 // Polls for features since they're enabled async after session starts
 async function initializeUI() {
   // Wait up to 10 seconds for features to be enabled
-  // isLite returns true until server confirms tier
+  // isFree returns true until server confirms tier
   let attempts = 0
-  while (staticTV.isLite && attempts < 20) {
+  while (staticTV.isFree && attempts < 20) {
     await new Promise(resolve => setTimeout(resolve, 500))
     attempts++
   }
@@ -133,7 +142,7 @@ async function initializeUI() {
   }
 
   // Update UI elements now that we know the actual SDK tier
-  if (!staticTV.isLite) {
+  if (!staticTV.isFree) {
     updateUIForPaidMode()
     console.log('[thestatic.tv] SDK Tier: STANDARD - Guide & Chat available')
   } else {
@@ -157,33 +166,74 @@ function updateUIForPaidMode() {
   console.log('[thestatic.tv] UI updated for STANDARD tier')
 }
 
-// Entry point - SDK initialization
+// ============================================================================
+// MAIN ENTRY POINT
+// ============================================================================
 export function main() {
+  // -------------------------------------------------------------------------
+  // STEP 1: Initialize the SDK
+  // -------------------------------------------------------------------------
+  // Pass your video screen entity here. SDK will:
+  // - Create VideoPlayer on your entity
+  // - Auto-play fallback video (https://media.thestatic.tv/fallback-loop.mp4)
+  // - Handle stream verification (CONNECTING -> PLAYING or OFFLINE)
+  // - Switch videos when user selects from Guide
+  // -------------------------------------------------------------------------
   staticTV = new StaticTVClient({
     apiKey: API_KEY,
-    debug: true,
-    guideUI: { onVideoSelect: handleVideoSelect },
+    debug: true,                                    // Set false in production
+    videoScreen: videoScreen,                       // YOUR screen entity
+    guideUI: { onVideoSelect: handleVideoSelect },  // Callback for custom logic
     chatUI: { position: 'right', fontScale: 1.0 }
   })
 
+  // -------------------------------------------------------------------------
+  // STEP 2: Apply video texture material (MUST be after SDK init!)
+  // -------------------------------------------------------------------------
+  // The SDK created the VideoPlayer above. Now we apply the material so
+  // the video actually displays on your screen mesh.
+  //
+  // WHY HERE? VideoPlayer must exist before we reference it in the texture.
+  // SDK creates it in the constructor, so we apply material right after.
+  //
+  // CUSTOMIZE THIS: Change emissiveIntensity for brighter/dimmer screen,
+  // adjust roughness/metallic for different surface appearance.
+  // -------------------------------------------------------------------------
+  Material.setPbrMaterial(videoScreen, {
+    texture: Material.Texture.Video({ videoPlayerEntity: videoScreen }),
+    roughness: 1.0,
+    metallic: 0,
+    emissiveColor: Color4.White(),
+    emissiveIntensity: 0.5,  // Adjust for screen brightness
+    emissiveTexture: Material.Texture.Video({ videoPlayerEntity: videoScreen })
+  })
+
+  // Initialize UI modules (Guide, Chat - available on Standard/Pro tiers)
   initializeUI()
 
   console.log('[thestatic.tv] SDK initialized')
 }
 
-// ============================================
-// UI RENDERING
-// ============================================
-// Guide and Chat panels are rendered here (Full mode only)
-// Toggle buttons are added to the SDK's UI components
-// Must wrap in a root UiEntity for DCL React-ECS to render properly
+// ============================================================================
+// UI RENDERING (Required for Guide/Chat/Admin panels to appear!)
+// ============================================================================
+//
+// This MUST be outside main() - it's a DCL requirement.
+// The SDK provides UI components, but you must render them.
+//
+// Guide UI: Channel browser - click videos to play on your screen
+// Chat UI: Real-time chat with other viewers
+// Admin Panel: (PRO TIER) Video/mod controls - included in this template
+//
+// ============================================================================
 ReactEcsRenderer.setUiRenderer(() => {
   if (!staticTV) return null
   return ReactEcs.createElement(UiEntity, {
     uiTransform: { width: '100%', height: '100%', positionType: 'absolute' },
     children: [
-      staticTV.guideUI?.getComponent(),
-      staticTV.chatUI?.getComponent()
+      staticTV.guideUI?.getComponent(),    // Channel browser panel
+      staticTV.chatUI?.getComponent(),     // Chat panel
+      staticTV.adminPanel?.getComponent()  // Admin Panel (PRO tier)
     ].filter(Boolean)
   })
 })
@@ -836,11 +886,26 @@ pointerEventsSystem.onPointerDown(
   }
 )
 
-// ============================================
+// ============================================================================
 // VIDEO SCREEN (Right side)
-// ============================================
+// ============================================================================
+//
+// YOUR VIDEO SCREEN SETUP - Customize position, size, and orientation!
+//
+// IMPORTANT: Notice we only set up Transform, MeshRenderer, and MeshCollider here.
+// The Material with video texture is applied in main() AFTER SDK init.
+// This is required because VideoPlayer must exist before we can reference it.
+//
+// TO USE YOUR OWN SCREEN:
+// 1. Create entity: const myScreen = engine.addEntity()
+// 2. Add Transform (position, scale, rotation - your choice)
+// 3. Add MeshRenderer.setPlane() or MeshRenderer.setBox()
+// 4. Pass to SDK: videoScreen: myScreen
+// 5. Apply Material in main() after SDK init (see main() function above)
+//
+// ============================================================================
 
-// Screen backdrop/frame (16:9 ratio)
+// Screen backdrop/frame (decorative, not required)
 Transform.create(videoScreenFrame, {
   position: Vector3.create(13.95, 3, 8),
   scale: Vector3.create(0.15, 4.2, 7.5),
@@ -853,30 +918,16 @@ Material.setPbrMaterial(videoScreenFrame, {
   emissiveIntensity: 2
 })
 
-// Main video screen (16:9 ratio)
+// *** THE VIDEO SCREEN ENTITY ***
+// This is the entity passed to SDK via videoScreen config.
+// SDK creates VideoPlayer here. Material applied in main().
 Transform.create(videoScreen, {
   position: Vector3.create(13.85, 3, 8),
-  scale: Vector3.create(7.2, 4.05, 1),
+  scale: Vector3.create(7.2, 4.05, 1),  // 16:9 aspect ratio
   rotation: Quaternion.fromEulerDegrees(0, 90, 0)
 })
-MeshRenderer.setPlane(videoScreen)
-MeshCollider.setPlane(videoScreen)
-
-// Play default loop video until user selects from guide
-VideoPlayer.create(videoScreen, {
-  src: 'videos/dynamic-loop.mp4',
-  playing: true,
-  loop: true,
-  volume: 0.5
-})
-Material.setPbrMaterial(videoScreen, {
-  texture: Material.Texture.Video({ videoPlayerEntity: videoScreen }),
-  roughness: 1.0,
-  metallic: 0,
-  emissiveColor: Color4.White(),
-  emissiveIntensity: 0.5,
-  emissiveTexture: Material.Texture.Video({ videoPlayerEntity: videoScreen })
-})
+MeshRenderer.setPlane(videoScreen)  // Plane works best for video screens
+MeshCollider.setPlane(videoScreen)  // Clickable for play/pause
 
 // Click to toggle play/pause
 pointerEventsSystem.onPointerDown(
@@ -1167,8 +1218,8 @@ async function fetchAndDisplayStats() {
 // ============================================
 
 console.log('='.repeat(50))
-console.log('[thestatic.tv] Popup Example Scene Loaded')
-console.log('[thestatic.tv] Waiting for session to determine SDK mode...')
+console.log('[thestatic.tv] PRO Tier Template')
+console.log('[thestatic.tv] Video + Guide + Chat + Admin Panel')
 console.log('[thestatic.tv] Get your key: https://thestatic.tv/dashboard')
 console.log('='.repeat(50))
 
