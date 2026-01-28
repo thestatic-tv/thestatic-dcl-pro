@@ -1,0 +1,26 @@
+{
+  "name": "thestatic-dcl-popup",
+  "version": "1.0.0",
+  "description": "TheStatic.tv popup showcase scene - full SDK demo with video screen, guide, and chat",
+  "scripts": {
+    "build": "sdk-commands build --production",
+    "start": "sdk-commands start",
+    "deploy": "sdk-commands deploy",
+    "deploy:test": "sdk-commands deploy --target-content https://worlds-content-server.decentraland.org"
+  },
+  "dependencies": {
+    "@dcl/js-runtime": "7.17.0",
+    "@dcl/sdk": "7.17.0",
+    "@thestatic-tv/dcl-sdk": "2.5.16"
+  },
+  "devDependencies": {
+    "@dcl/sdk-commands": "7.17.0"
+  },
+  "overrides": {
+    "@dcl/asset-packs": "2.9.2"
+  },
+  "prettier": {
+    "semi": false,
+    "singleQuote": true
+  }
+}

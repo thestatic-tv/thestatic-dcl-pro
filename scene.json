@@ -1,0 +1,52 @@
+{
+  "display": {
+    "title": "TheStatic.tv PRO Template",
+    "description": "Experience live streaming in Decentraland! Browse channels, watch together, and chat in real-time. Powered by TheStatic.tv - bringing web3 streaming to the metaverse.",
+    "navmapThumbnail": "images/scene-thumbnail.png",
+    "favicon": "favicon_asset"
+  },
+  "owner": "",
+  "contact": {
+    "name": "TheStatic.tv",
+    "email": "contact@thestatic.tv"
+  },
+  "main": "bin/index.js",
+  "runtimeVersion": "7",
+  "tags": [
+    "thestatic",
+    "streaming",
+    "live-tv",
+    "video",
+    "entertainment",
+    "social",
+    "chat",
+    "watch-party",
+    "popup",
+    "showcase",
+    "web3-streaming"
+  ],
+  "scene": {
+    "parcels": ["0,0"],
+    "base": "0,0"
+  },
+  "spawnPoints": [
+    {
+      "name": "entrance",
+      "default": true,
+      "position": {
+        "x": 8,
+        "y": 0.1,
+        "z": 8
+      },
+      "cameraTarget": {
+        "x": 8,
+        "y": 3,
+        "z": 4
+      }
+    }
+  ],
+  "requiredPermissions": [
+    "ALLOW_TO_MOVE_PLAYER_INSIDE_SCENE"
+  ],
+  "featureToggles": {}
+}
