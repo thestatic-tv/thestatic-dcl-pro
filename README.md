@@ -1,18 +1,22 @@
-# TheStatic.tv Popup Showcase
+# TheStatic.tv DCL SDK - PRO Tier Template
 
-An immersive popup scene showcasing the full capabilities of [@thestatic-tv/dcl-sdk](https://www.npmjs.com/package/@thestatic-tv/dcl-sdk) - streaming video, channel guide, and real-time chat in Decentraland.
+PRO tier template with ALL SDK features: video screen, Guide UI, Chat, and **Admin Panel** for your Decentraland scene.
 
-## Overview
+## What This Example Shows
 
-This is a production-ready popup scene designed to demonstrate TheStatic.tv platform at events, conferences, and high-traffic Decentraland locations. Unlike the starter example, this scene is fully styled and optimized for visitor engagement.
+- **Video Screen** - Stream video with automatic fallback
+- **Guide UI** - Browse channels and select videos
+- **Chat UI** - Real-time messaging with other viewers
+- **Admin Panel** - Video/mod controls (PRO EXCLUSIVE)
+- **Visitor Tracking** - Session analytics included
 
-## Features
+## SDK Tiers
 
-- **Large Format Video Screen** - 16:9 widescreen display
-- **Channel Guide UI** - Browse live and scheduled content
-- **Real-Time Chat** - Chat with other visitors watching the same content
-- **Immersive Environment** - Custom lighting, materials, and atmosphere
-- **Visitor Analytics** - Track engagement through your dashboard
+| Tier | Price | Features |
+|------|-------|----------|
+| **FREE** | $0 | Session tracking only |
+| **STANDARD** | $10/mo | Video + Guide + Chat |
+| **PRO** | $15/mo | + Admin Panel - THIS TEMPLATE |
 
 ## Quick Start
 
@@ -21,119 +25,57 @@ npm install
 npm start
 ```
 
-The scene works immediately for testing - no setup required!
+PRO tier requires a purchased API key. Get yours at [thestatic.tv](https://thestatic.tv)
 
-## Configuration (Optional)
+## Add Your Key
 
-To use your own key:
+Open `src/index.ts` and replace the placeholder:
 
-1. Get a key at [thestatic.tv/dashboard](https://thestatic.tv/dashboard)
-2. Open `src/index.ts`
-3. Replace the API key in the configuration section
-
-## Scene Layout
-
-```
-┌─────────────────────────────────────────┐
-│                                         │
-│         ┌─────────────────┐             │
-│         │                 │             │
-│         │   VIDEO SCREEN  │             │
-│         │                 │             │
-│         └─────────────────┘             │
-│                                         │
-│    [GUIDE]                    [CHAT]    │
-│                                         │
-│              SPAWN POINT                │
-│                                         │
-└─────────────────────────────────────────┘
-```
-
-## SDK Integration
-
-This scene demonstrates the complete SDK integration:
-
-### Initialization
 ```typescript
-let staticTV: StaticTVClient
-
-export function main() {
-  staticTV = new StaticTVClient({
-    apiKey: API_KEY,
-    debug: false,
-    guideUI: {
-      onVideoSelect: handleVideoSelect,
-      fontScale: 1.0
-    },
-    chatUI: {
-      fontScale: 1.0
-    }
-  })
-}
+staticTV = new StaticTVClient({
+  apiKey: 'dcls_YOUR_API_KEY_HERE',  // Get from thestatic.tv
+  onVideoPlay: (url) => playVideoOnScreen(url),
+  onVideoStop: () => stopVideoOnScreen(),
+  guideUI: { onVideoSelect: handleVideoSelect },
+  chatUI: { position: 'right' }
+})
 ```
 
-### Video Handling
-```typescript
-function handleVideoSelect(video: GuideVideo) {
-  VideoPlayer.createOrReplace(videoScreen, {
-    src: video.src,
-    playing: true,
-    loop: true,
-    volume: 0.8
-  })
+## Admin Panel (PRO Feature)
 
-  // Track what users are watching
-  if (staticTV.heartbeat && video.channelId) {
-    staticTV.heartbeat.startWatching(video.channelId)
-  }
-}
-```
+The Admin Panel gives you in-scene controls:
+- Change video source live
+- Moderate chat
+- View real-time viewer stats
+- Control playback
 
-### UI Rendering
+To render the Admin Panel, include it in your UI renderer:
+
 ```typescript
-// Outside main() - DCL requirement
 ReactEcsRenderer.setUiRenderer(() => {
   if (!staticTV) return null
   return ReactEcs.createElement(UiEntity, {
     uiTransform: { width: '100%', height: '100%', positionType: 'absolute' },
     children: [
       staticTV.guideUI?.getComponent(),
-      staticTV.chatUI?.getComponent()
+      staticTV.chatUI?.getComponent(),
+      staticTV.adminPanel?.getComponent()  // PRO tier only
     ].filter(Boolean)
   })
 })
 ```
 
-## Deployment
-
-### Test World (Preview)
-```bash
-npm run deploy:test
-```
-
-### Production (Decentraland)
-```bash
-npm run deploy
-```
-
-## Scene Metadata
-
-Edit `scene.json` to customize:
-- Scene title and description
-- Thumbnail image
-- Spawn point location
-- Parcel coordinates
-
 ## Project Structure
 
 ```
-thestatic-dcl-popup/
+thestatic-dcl-pro/
 ├── src/
-│   └── index.ts        # Main scene with full SDK integration
+│   ├── index.ts              # Your scene entry point
+│   └── DELETE_THIS_DEMO.ts   # Helper file - DELETE when using your own key
 ├── images/
 │   └── scene-thumbnail.png
-├── scene.json          # Scene metadata
-└── package.json        # Dependencies
+├── scene.json         # Scene metadata
+└── package.json       # Dependencies
 ```
 
 ## Commands
@@ -142,27 +84,28 @@ thestatic-dcl-popup/
 |---------|-------------|
 | `npm start` | Run locally in preview mode |
 | `npm run build` | Build for production |
-| `npm run deploy` | Deploy to Decentraland mainnet |
+| `npm run deploy` | Deploy to Decentraland |
 | `npm run deploy:test` | Deploy to test world server |
 
-## Differences from Starter Example
+## Tier Comparison
 
-| Feature | Starter Example | Popup Showcase |
-|---------|-----------------|----------------|
-| Purpose | Learning/Integration | Production/Events |
-| Visual Style | Basic demo | Polished showcase |
-| Code Comments | Extensive | Minimal |
-| Demo Elements | Many (for teaching) | Production-ready |
-| Default Key | Lite mode demo | Full mode |
+| Feature | Free | Standard | Pro (This) |
+|---------|------|----------|------------|
+| Session Tracking | Yes | Yes | Yes |
+| Video Screen | No | Yes | Yes |
+| Guide UI | No | Yes | Yes |
+| Chat UI | No | Yes | Yes |
+| Admin Panel | No | No | Yes |
+
+## Other Templates
+
+| Template | Tier | Features |
+|----------|------|----------|
+| **[Free](https://github.com/thestatic-tv/thestatic-dcl-free)** | FREE | Session tracking only |
+| **[Standard](https://github.com/thestatic-tv/thestatic-dcl-standard)** | STANDARD | Video + Guide + Chat |
 
 ## Resources
 
-- [Basic Example](https://github.com/thestatic-tv/thestatic-dcl-basic) - Minimal metrics-only example
-- [Starter Template](https://github.com/thestatic-tv/thestatic-dcl-starter) - For new projects
-- [SDK Documentation](https://github.com/thestatic-tv/dcl-sdk)
-- [Get API Key](https://thestatic.tv/dashboard)
-- [TheStatic.tv](https://thestatic.tv)
-
-## Support
-
-Questions? Visit [thestatic.tv](https://thestatic.tv) or open an issue on GitHub.
+- [Get API Key](https://thestatic.tv/admin/login)
+- [SDK on npm](https://www.npmjs.com/package/@thestatic-tv/dcl-sdk)
+- [thestatic.tv](https://thestatic.tv)

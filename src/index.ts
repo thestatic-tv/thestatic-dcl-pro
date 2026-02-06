@@ -16,13 +16,13 @@
  * - PRO ($15):      + Admin Panel - THIS TEMPLATE
  *
  * QUICK START:
- * 1. npm install
- * 2. npm start
- * 3. Scene works immediately with demo key!
- *
- * USE YOUR OWN KEY:
- * 1. Get key at https://thestatic.tv/dashboard
+ * 1. Get your PRO API key at https://thestatic.tv
  * 2. Replace 'dcls_YOUR_API_KEY_HERE' below with your key
+ * 3. npm install
+ * 4. npm start
+ *
+ * NOTE: PRO tier requires a purchased API key to use SDK features.
+ * Demo keys are only available for FREE and STANDARD tiers.
  *
  * VIDEO SCREEN SETUP (IMPORTANT):
  * The SDK manages VideoPlayer, but YOU must set up the video texture material.
@@ -50,22 +50,23 @@ import ReactEcs, { ReactEcsRenderer, UiEntity } from '@dcl/sdk/react-ecs'
 import { openExternalUrl } from '~system/RestrictedActions'
 import { StaticTVClient, GuideVideo } from '@thestatic-tv/dcl-sdk'
 
-// Demo key resolver - DELETE demo-config.ts when using your own key
-import { getDemoKey } from './demo-config'
+// Key helper - DELETE DELETE_THIS_DEMO.ts when using your own key
+import { getDemoKey } from './DELETE_THIS_DEMO'
 
 // ============================================
 // LINKS
 // ============================================
 const LINKS = {
-  dashboard: 'https://thestatic.tv/dashboard',
+  site: 'https://thestatic.tv',
+  getKey: 'https://thestatic.tv/admin/login',
   github: 'https://github.com/thestatic-tv/thestatic-dcl-pro'
 }
 
 // ============================================
-// CONFIGURATION
+// CONFIGURATION - PRO KEY REQUIRED
 // ============================================
-// Replace with your own key from thestatic.tv/dashboard
-// Delete demo-config.ts and use your key directly: apiKey: 'dcls_YOUR_ACTUAL_KEY'
+// Get your PRO key at: https://thestatic.tv
+// Replace the placeholder below with your actual key
 const API_KEY = getDemoKey('dcls_YOUR_API_KEY_HERE')
 
 // ============================================================================
@@ -102,8 +103,6 @@ const videoScreenLabel = engine.addEntity()
  * DO NOT call VideoPlayer.createOrReplace here - SDK does that for you.
  */
 function handleVideoSelect(video: GuideVideo) {
-  console.log('[thestatic.tv] Video selected:', video.name)
-
   // Update the label to show current video name
   TextShape.getMutable(videoScreenLabel).text = video.name
 
@@ -121,6 +120,43 @@ function handleVideoSelect(video: GuideVideo) {
 // SDK client - initialized in main()
 let staticTV: StaticTVClient
 
+// =============================================================================
+// VIDEO PLAYBACK - You control the VideoPlayer
+// =============================================================================
+function playVideoOnScreen(url: string) {
+  VideoPlayer.createOrReplace(videoScreen, {
+    src: url,
+    playing: true,
+    loop: false,
+    volume: 0.8
+  })
+  Material.setPbrMaterial(videoScreen, {
+    texture: Material.Texture.Video({ videoPlayerEntity: videoScreen }),
+    roughness: 1.0,
+    metallic: 0,
+    emissiveColor: Color4.White(),
+    emissiveIntensity: 0.5,
+    emissiveTexture: Material.Texture.Video({ videoPlayerEntity: videoScreen })
+  })
+}
+
+function stopVideoOnScreen() {
+  VideoPlayer.createOrReplace(videoScreen, {
+    src: 'https://media.thestatic.tv/fallback-loop.mp4',
+    playing: true,
+    loop: true,
+    volume: 0.5
+  })
+  Material.setPbrMaterial(videoScreen, {
+    texture: Material.Texture.Video({ videoPlayerEntity: videoScreen }),
+    roughness: 1.0,
+    metallic: 0,
+    emissiveColor: Color4.White(),
+    emissiveIntensity: 0.5,
+    emissiveTexture: Material.Texture.Video({ videoPlayerEntity: videoScreen })
+  })
+}
+
 // Initialize UI modules when available (Standard/Pro tiers)
 // Polls for features since they're enabled async after session starts
 async function initializeUI() {
@@ -132,21 +168,12 @@ async function initializeUI() {
     attempts++
   }
 
-  if (staticTV.guideUI) {
-    await staticTV.guideUI.init()
-    console.log('[thestatic.tv] Guide UI initialized')
-  }
-  if (staticTV.chatUI) {
-    await staticTV.chatUI.init()
-    console.log('[thestatic.tv] Chat UI initialized')
-  }
+  if (staticTV.guideUI) await staticTV.guideUI.init()
+  if (staticTV.chatUI) await staticTV.chatUI.init()
 
   // Update UI elements now that we know the actual SDK tier
   if (!staticTV.isFree) {
     updateUIForPaidMode()
-    console.log('[thestatic.tv] SDK Tier: STANDARD - Guide & Chat available')
-  } else {
-    console.log('[thestatic.tv] SDK Tier: FREE - Visitor tracking only')
   }
 }
 
@@ -162,56 +189,26 @@ function updateUIForPaidMode() {
 
   const mutableInfoContent = TextShape.getMutable(infoContent)
   mutableInfoContent.text = 'Channel Guide UI - Browse streams\nReal-time Chat - Talk to viewers\nWatch Metrics - Track engagement\nClick GUIDE or CHAT to try!'
-
-  console.log('[thestatic.tv] UI updated for STANDARD tier')
 }
 
 // ============================================================================
 // MAIN ENTRY POINT
 // ============================================================================
 export function main() {
-  // -------------------------------------------------------------------------
-  // STEP 1: Initialize the SDK
-  // -------------------------------------------------------------------------
-  // Pass your video screen entity here. SDK will:
-  // - Create VideoPlayer on your entity
-  // - Auto-play fallback video (https://media.thestatic.tv/fallback-loop.mp4)
-  // - Handle stream verification (CONNECTING -> PLAYING or OFFLINE)
-  // - Switch videos when user selects from Guide
-  // -------------------------------------------------------------------------
+  // Start with fallback video
+  stopVideoOnScreen()
+
+  // Initialize SDK - callbacks give YOU control of video playback
   staticTV = new StaticTVClient({
     apiKey: API_KEY,
-    debug: true,                                    // Set false in production
-    videoScreen: videoScreen,                       // YOUR screen entity
-    guideUI: { onVideoSelect: handleVideoSelect },  // Callback for custom logic
-    chatUI: { position: 'right', fontScale: 1.0 }
+    onVideoPlay: (url) => playVideoOnScreen(url),
+    onVideoStop: () => stopVideoOnScreen(),
+    guideUI: { onVideoSelect: handleVideoSelect },
+    chatUI: { position: 'right' }
   })
 
-  // -------------------------------------------------------------------------
-  // STEP 2: Apply video texture material (MUST be after SDK init!)
-  // -------------------------------------------------------------------------
-  // The SDK created the VideoPlayer above. Now we apply the material so
-  // the video actually displays on your screen mesh.
-  //
-  // WHY HERE? VideoPlayer must exist before we reference it in the texture.
-  // SDK creates it in the constructor, so we apply material right after.
-  //
-  // CUSTOMIZE THIS: Change emissiveIntensity for brighter/dimmer screen,
-  // adjust roughness/metallic for different surface appearance.
-  // -------------------------------------------------------------------------
-  Material.setPbrMaterial(videoScreen, {
-    texture: Material.Texture.Video({ videoPlayerEntity: videoScreen }),
-    roughness: 1.0,
-    metallic: 0,
-    emissiveColor: Color4.White(),
-    emissiveIntensity: 0.5,  // Adjust for screen brightness
-    emissiveTexture: Material.Texture.Video({ videoPlayerEntity: videoScreen })
-  })
-
-  // Initialize UI modules (Guide, Chat - available on Standard/Pro tiers)
+  // Initialize UI modules (Guide, Chat, Admin Panel)
   initializeUI()
-
-  console.log('[thestatic.tv] SDK initialized')
 }
 
 // ============================================================================
@@ -400,7 +397,7 @@ Material.setPbrMaterial(edgeW, {
 // Sign backdrop
 const signBack = engine.addEntity()
 Transform.create(signBack, {
-  position: Vector3.create(8, 3.5, 2),
+  position: Vector3.create(8, 3.5, 1),
   scale: Vector3.create(8, 3, 0.15)
 })
 MeshRenderer.setBox(signBack)
@@ -414,7 +411,7 @@ Material.setPbrMaterial(signBack, {
 // Sign border
 const signFrame = engine.addEntity()
 Transform.create(signFrame, {
-  position: Vector3.create(8, 3.5, 1.9),
+  position: Vector3.create(8, 3.5, 0.9),
   scale: Vector3.create(8.2, 3.2, 0.05)
 })
 MeshRenderer.setBox(signFrame)
@@ -427,7 +424,7 @@ Material.setPbrMaterial(signFrame, {
 // Main title
 const titleText = engine.addEntity()
 Transform.create(titleText, {
-  position: Vector3.create(8, 4.2, 2.2),
+  position: Vector3.create(8, 4.2, 1.2),
   rotation: Quaternion.fromEulerDegrees(0, 180, 0)
 })
 TextShape.create(titleText, {
@@ -440,7 +437,7 @@ TextShape.create(titleText, {
 // Subtitle
 const subtitleText = engine.addEntity()
 Transform.create(subtitleText, {
-  position: Vector3.create(8, 3.2, 2.2),
+  position: Vector3.create(8, 3.2, 1.2),
   rotation: Quaternion.fromEulerDegrees(0, 180, 0)
 })
 TextShape.create(subtitleText, {
@@ -457,7 +454,7 @@ TextShape.create(subtitleText, {
 // Status panel backdrop
 const statusPanel = engine.addEntity()
 Transform.create(statusPanel, {
-  position: Vector3.create(8, 1.8, 2.5),
+  position: Vector3.create(8, 1.8, 1.5),
   scale: Vector3.create(4, 1.2, 0.1)
 })
 MeshRenderer.setBox(statusPanel)
@@ -471,7 +468,7 @@ Material.setPbrMaterial(statusPanel, {
 // Status indicator orb
 const statusOrb = engine.addEntity()
 Transform.create(statusOrb, {
-  position: Vector3.create(9.5, 2, 2.6),
+  position: Vector3.create(9.5, 2, 1.6),
   scale: Vector3.create(0.25, 0.25, 0.25)
 })
 MeshRenderer.setSphere(statusOrb)
@@ -479,7 +476,7 @@ MeshRenderer.setSphere(statusOrb)
 // Status text
 const statusText = engine.addEntity()
 Transform.create(statusText, {
-  position: Vector3.create(8.2, 2, 2.6),
+  position: Vector3.create(8.2, 2, 1.6),
   rotation: Quaternion.fromEulerDegrees(0, 180, 0)
 })
 TextShape.create(statusText, {
@@ -492,7 +489,7 @@ TextShape.create(statusText, {
 // Session timer text
 const timerText = engine.addEntity()
 Transform.create(timerText, {
-  position: Vector3.create(8.2, 1.5, 2.6),
+  position: Vector3.create(8.2, 1.5, 1.6),
   rotation: Quaternion.fromEulerDegrees(0, 180, 0)
 })
 TextShape.create(timerText, {
@@ -555,10 +552,10 @@ cubePositions.forEach((pos) => {
 // ============================================
 
 const pillarPositions = [
-  { x: 2, z: 2 },
-  { x: 14, z: 2 },
-  { x: 2, z: 14 },
-  { x: 14, z: 14 }
+  { x: 1.5, z: 1.5 },
+  { x: 14.5, z: 1.5 },
+  { x: 1.5, z: 14.5 },
+  { x: 14.5, z: 14.5 }
 ]
 
 pillarPositions.forEach(pos => {
@@ -665,7 +662,7 @@ Transform.create(hologramClickArea, {
 MeshCollider.setBox(hologramClickArea)
 pointerEventsSystem.onPointerDown(
   { entity: hologramClickArea, opts: { button: InputAction.IA_POINTER, hoverText: 'Visit thestatic.tv' } },
-  () => { openExternalUrl({ url: LINKS.dashboard }) }
+  () => { openExternalUrl({ url: LINKS.site }) }
 )
 
 // Stack of animated discs - anti-gravity tail effect
@@ -748,7 +745,7 @@ orbConfigs.forEach((cfg, i) => {
 // Info panel background
 const infoPanelBack = engine.addEntity()
 Transform.create(infoPanelBack, {
-  position: Vector3.create(8, 2.5, 14),
+  position: Vector3.create(8, 2.5, 15),
   scale: Vector3.create(6, 4, 0.1)
 })
 MeshRenderer.setBox(infoPanelBack)
@@ -762,7 +759,7 @@ Material.setPbrMaterial(infoPanelBack, {
 // Info panel frame
 const infoPanelFrame = engine.addEntity()
 Transform.create(infoPanelFrame, {
-  position: Vector3.create(8, 2.5, 14.1),
+  position: Vector3.create(8, 2.5, 15.1),
   scale: Vector3.create(6.2, 4.2, 0.05)
 })
 MeshRenderer.setBox(infoPanelFrame)
@@ -775,7 +772,7 @@ Material.setPbrMaterial(infoPanelFrame, {
 // Info title
 const infoTitle = engine.addEntity()
 Transform.create(infoTitle, {
-  position: Vector3.create(8, 4, 13.8),
+  position: Vector3.create(8, 4, 14.8),
   rotation: Quaternion.fromEulerDegrees(0, 0, 0)
 })
 TextShape.create(infoTitle, {
@@ -789,7 +786,7 @@ TextShape.create(infoTitle, {
 // Info content
 const infoContent = engine.addEntity()
 Transform.create(infoContent, {
-  position: Vector3.create(8, 2.5, 13.8),
+  position: Vector3.create(8, 2.5, 14.8),
   rotation: Quaternion.fromEulerDegrees(0, 0, 0)
 })
 TextShape.create(infoContent, {
@@ -803,7 +800,7 @@ TextShape.create(infoContent, {
 // Info footer
 const infoFooter = engine.addEntity()
 Transform.create(infoFooter, {
-  position: Vector3.create(8, 1.2, 13.8),
+  position: Vector3.create(8, 1.2, 14.8),
   rotation: Quaternion.fromEulerDegrees(0, 0, 0)
 })
 TextShape.create(infoFooter, {
@@ -821,7 +818,7 @@ TextShape.create(infoFooter, {
 // Dashboard button
 const dashboardButton = engine.addEntity()
 Transform.create(dashboardButton, {
-  position: Vector3.create(6.5, 0.6, 13.85),
+  position: Vector3.create(6.5, 0.6, 14.85),
   scale: Vector3.create(2.5, 0.6, 0.1)
 })
 MeshRenderer.setBox(dashboardButton)
@@ -834,11 +831,11 @@ Material.setPbrMaterial(dashboardButton, {
 
 const dashboardButtonText = engine.addEntity()
 Transform.create(dashboardButtonText, {
-  position: Vector3.create(6.5, 0.6, 13.7),
+  position: Vector3.create(6.5, 0.6, 14.7),
   rotation: Quaternion.fromEulerDegrees(0, 0, 0)
 })
 TextShape.create(dashboardButtonText, {
-  text: 'TRY FREE',
+  text: 'GET API KEY',
   fontSize: 1.5,
   textColor: COLORS.darkPanel,
   width: 10,
@@ -846,16 +843,16 @@ TextShape.create(dashboardButtonText, {
 })
 
 pointerEventsSystem.onPointerDown(
-  { entity: dashboardButton, opts: { button: InputAction.IA_POINTER, hoverText: 'Open thestatic.tv' } },
+  { entity: dashboardButton, opts: { button: InputAction.IA_POINTER, hoverText: 'Get your API key' } },
   () => {
-    openExternalUrl({ url: LINKS.dashboard })
+    openExternalUrl({ url: LINKS.getKey })
   }
 )
 
 // GitHub button
 const githubButton = engine.addEntity()
 Transform.create(githubButton, {
-  position: Vector3.create(9.5, 0.6, 13.85),
+  position: Vector3.create(9.5, 0.6, 14.85),
   scale: Vector3.create(2.5, 0.6, 0.1)
 })
 MeshRenderer.setBox(githubButton)
@@ -868,7 +865,7 @@ Material.setPbrMaterial(githubButton, {
 
 const githubButtonText = engine.addEntity()
 Transform.create(githubButtonText, {
-  position: Vector3.create(9.5, 0.6, 13.7),
+  position: Vector3.create(9.5, 0.6, 14.7),
   rotation: Quaternion.fromEulerDegrees(0, 0, 0)
 })
 TextShape.create(githubButtonText, {
@@ -907,7 +904,7 @@ pointerEventsSystem.onPointerDown(
 
 // Screen backdrop/frame (decorative, not required)
 Transform.create(videoScreenFrame, {
-  position: Vector3.create(13.95, 3, 8),
+  position: Vector3.create(14.95, 3, 8),
   scale: Vector3.create(0.15, 4.2, 7.5),
   rotation: Quaternion.fromEulerDegrees(0, 0, 0)
 })
@@ -919,32 +916,19 @@ Material.setPbrMaterial(videoScreenFrame, {
 })
 
 // *** THE VIDEO SCREEN ENTITY ***
-// This is the entity passed to SDK via videoScreen config.
-// SDK creates VideoPlayer here. Material applied in main().
+// East wall facing west - same scale pattern as STANDARD, rotated 90 degrees
 Transform.create(videoScreen, {
-  position: Vector3.create(13.85, 3, 8),
-  scale: Vector3.create(7.2, 4.05, 1),  // 16:9 aspect ratio
-  rotation: Quaternion.fromEulerDegrees(0, 90, 0)
+  position: Vector3.create(14.85, 3, 8),
+  scale: Vector3.create(7.2, 4.05, 0.01),  // width, height, depth (same as STANDARD)
+  rotation: Quaternion.fromEulerDegrees(0, 90, 0)  // rotate to face west
 })
-MeshRenderer.setPlane(videoScreen)  // Plane works best for video screens
-MeshCollider.setPlane(videoScreen)  // Clickable for play/pause
-
-// Click to toggle play/pause
-pointerEventsSystem.onPointerDown(
-  { entity: videoScreen, opts: { button: InputAction.IA_POINTER, hoverText: 'Toggle Play/Pause' } },
-  () => {
-    const player = VideoPlayer.getMutableOrNull(videoScreen)
-    if (player) {
-      player.playing = !player.playing
-      console.log('[thestatic.tv] Video', player.playing ? 'playing' : 'paused')
-    }
-  }
-)
+MeshRenderer.setBox(videoScreen)
+MeshCollider.setBox(videoScreen)
 
 // Video label background
 const videoScreenLabelBg = engine.addEntity()
 Transform.create(videoScreenLabelBg, {
-  position: Vector3.create(13.85, 0.7, 8),
+  position: Vector3.create(14.85, 0.7, 8),
   scale: Vector3.create(0.1, 0.6, 4),
   rotation: Quaternion.fromEulerDegrees(0, 0, 0)
 })
@@ -957,7 +941,7 @@ Material.setPbrMaterial(videoScreenLabelBg, {
 
 // Video label
 Transform.create(videoScreenLabel, {
-  position: Vector3.create(13.75, 0.7, 8),
+  position: Vector3.create(14.75, 0.7, 8),
   rotation: Quaternion.fromEulerDegrees(0, 90, 0)
 })
 TextShape.create(videoScreenLabel, {
@@ -975,7 +959,7 @@ TextShape.create(videoScreenLabel, {
 // Stats panel background
 const statsPanelBack = engine.addEntity()
 Transform.create(statsPanelBack, {
-  position: Vector3.create(2, 2.5, 8),
+  position: Vector3.create(1.1, 2.5, 8),
   scale: Vector3.create(0.1, 3, 4),
   rotation: Quaternion.fromEulerDegrees(0, 0, 0)
 })
@@ -990,7 +974,7 @@ Material.setPbrMaterial(statsPanelBack, {
 // Stats panel frame
 const statsPanelFrame = engine.addEntity()
 Transform.create(statsPanelFrame, {
-  position: Vector3.create(1.9, 2.5, 8),
+  position: Vector3.create(1.0, 2.5, 8),
   scale: Vector3.create(0.05, 3.2, 4.2),
   rotation: Quaternion.fromEulerDegrees(0, 0, 0)
 })
@@ -1004,7 +988,7 @@ Material.setPbrMaterial(statsPanelFrame, {
 // Stats title
 const statsTitle = engine.addEntity()
 Transform.create(statsTitle, {
-  position: Vector3.create(2.2, 3.5, 8),
+  position: Vector3.create(1.3, 3.5, 8),
   rotation: Quaternion.fromEulerDegrees(0, 270, 0)
 })
 TextShape.create(statsTitle, {
@@ -1018,7 +1002,7 @@ TextShape.create(statsTitle, {
 // Visitors count text
 const visitorsText = engine.addEntity()
 Transform.create(visitorsText, {
-  position: Vector3.create(2.2, 2.8, 8),
+  position: Vector3.create(1.3, 2.8, 8),
   rotation: Quaternion.fromEulerDegrees(0, 270, 0)
 })
 TextShape.create(visitorsText, {
@@ -1032,7 +1016,7 @@ TextShape.create(visitorsText, {
 // Sessions count text
 const sessionsText = engine.addEntity()
 Transform.create(sessionsText, {
-  position: Vector3.create(2.2, 2.2, 8),
+  position: Vector3.create(1.3, 2.2, 8),
   rotation: Quaternion.fromEulerDegrees(0, 270, 0)
 })
 TextShape.create(sessionsText, {
@@ -1046,7 +1030,7 @@ TextShape.create(sessionsText, {
 // Your visitor number text
 const visitorNumText = engine.addEntity()
 Transform.create(visitorNumText, {
-  position: Vector3.create(2.2, 1.5, 8),
+  position: Vector3.create(1.3, 1.5, 8),
   rotation: Quaternion.fromEulerDegrees(0, 270, 0)
 })
 TextShape.create(visitorNumText, {
@@ -1209,18 +1193,6 @@ async function fetchAndDisplayStats() {
       }
     }
   } catch (error) {
-    console.log('[thestatic.tv] Failed to fetch stats')
+    // Stats fetch failed silently
   }
 }
-
-// ============================================
-// INITIALIZATION
-// ============================================
-
-console.log('='.repeat(50))
-console.log('[thestatic.tv] PRO Tier Template')
-console.log('[thestatic.tv] Video + Guide + Chat + Admin Panel')
-console.log('[thestatic.tv] Get your key: https://thestatic.tv/dashboard')
-console.log('='.repeat(50))
-
-export {}
