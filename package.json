@@ -1,7 +1,7 @@
 {
-  "name": "thestatic-dcl-popup",
+  "name": "thestatic-dcl-pro",
   "version": "1.0.0",
-  "description": "TheStatic.tv popup showcase scene - full SDK demo with video screen, guide, and chat",
+  "description": "PRO tier template - full SDK demo with video screen, Guide, Chat, and Admin Panel",
   "scripts": {
     "build": "sdk-commands build --production",
     "start": "sdk-commands start",
@@ -11,7 +11,7 @@
   "dependencies": {
     "@dcl/js-runtime": "7.17.0",
     "@dcl/sdk": "7.17.0",
-    "@thestatic-tv/dcl-sdk": "2.5.16"
+    "@thestatic-tv/dcl-sdk": "^2.5.27"
   },
   "devDependencies": {
     "@dcl/sdk-commands": "7.17.0"
