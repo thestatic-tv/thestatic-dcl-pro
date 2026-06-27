@@ -1,4 +1,4 @@
-# thestatic-dcl-pro — AI Session Entry
+# thestatic-dcl-pro - AI Session Entry
 
 ## What this is
 
@@ -11,7 +11,7 @@ The equivalent deployed production scene is `thestatic-hq`.
 ## What PRO tier provides
 
 - Everything in Standard (video screen, Guide UI, Chat UI, heartbeat, analytics)
-- **Admin Panel** — in-scene video and moderation controls (Pro-exclusive, `dclk_*` key required)
+- **Admin Panel** - in-scene video and moderation controls (Pro-exclusive, `dclk_*` key required)
 
 ## Quick commands
 
@@ -24,7 +24,7 @@ npm run deploy:test    # Test world
 
 ## Key file
 
-`src/index.ts` — Must use a **Pro tier channel key** (`dclk_*` prefix):
+`src/index.ts` - Must use a **Pro tier channel key** (`dclk_*` prefix):
 
 ```typescript
 staticTV = new StaticTVClient({
@@ -44,11 +44,11 @@ Get a Pro key at [thestatic.tv/dashboard](https://thestatic.tv/dashboard).
 |------|-----------|---------|
 | Free | `dcls_*` | Visitor tracking only |
 | Standard | `dcls_*` | + Video + Guide + Chat |
-| **Pro** | `dclk_*` | + Admin Panel — **this template** |
+| **Pro** | `dclk_*` | + Admin Panel - **this template** |
 
 See `thestatic-dcl-free` and `thestatic-dcl-standard` for the other tiers.
 
 ## Cross-repo dependencies
 
-- `thestatic-dcl-sdk` — publishes `@thestatic-tv/dcl-sdk` to npm
-- `thestatic-tv` — backend API this scene talks to; Pro features gated by channel key type
+- `thestatic-dcl-sdk` - publishes `@thestatic-tv/dcl-sdk` to npm
+- `thestatic-tv` - backend API this scene talks to; Pro features gated by channel key type
