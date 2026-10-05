@@ -179,13 +179,15 @@ async function initializeUI() {
 
 // Update UI elements to reflect Standard/Pro mode
 function updateUIForPaidMode() {
+  const isPro = staticTV.tier === 'pro'
+
   // Update subtitle text
   const mutableSubtitle = TextShape.getMutable(subtitleText)
-  mutableSubtitle.text = 'STANDARD - Guide & Chat Available'
+  mutableSubtitle.text = isPro ? 'PRO - Guide, Chat & Admin Panel' : 'STANDARD - Guide & Chat Available'
 
   // Update info panel
   const mutableInfoTitle = TextShape.getMutable(infoTitle)
-  mutableInfoTitle.text = 'STANDARD FEATURES'
+  mutableInfoTitle.text = isPro ? 'PRO FEATURES' : 'STANDARD FEATURES'
 
   const mutableInfoContent = TextShape.getMutable(infoContent)
   mutableInfoContent.text = 'Channel Guide UI - Browse streams\nReal-time Chat - Talk to viewers\nWatch Metrics - Track engagement\nClick GUIDE or CHAT to try!'
