@@ -11,7 +11,7 @@
   "dependencies": {
     "@dcl/js-runtime": "7.17.0",
     "@dcl/sdk": "7.17.0",
-    "@thestatic-tv/dcl-sdk": "^2.5.27"
+    "@thestatic-tv/dcl-sdk": "^2.6.0"
   },
   "devDependencies": {
     "@dcl/sdk-commands": "7.17.0"
