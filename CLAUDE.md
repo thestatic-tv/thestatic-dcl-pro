@@ -36,7 +36,7 @@ staticTV = new StaticTVClient({
 
 Get a Pro key at [thestatic.tv/dashboard](https://thestatic.tv/dashboard).
 
-> **Every tier uses `dcls_*`;** the tier is set on the key at thestatic.tv/dashboard and returned at session start. `dclk_*` is a legacy channel key (standard only).
+> **Every tier uses `dcls_*`;** the tier is set on the key at thestatic.tv/dashboard and returned at session start. `dclk_*` is a legacy channel key: it gets the tier it paid for (free when unpaid), never Pro, and counts no watch time or likes - use a `dcls_*` scene key.
 
 ## SDK tiers (for context)
 
