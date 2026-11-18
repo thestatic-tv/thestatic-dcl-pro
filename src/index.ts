@@ -58,7 +58,7 @@ import { getDemoKey } from './DELETE_THIS_DEMO'
 // ============================================
 const LINKS = {
   site: 'https://thestatic.tv',
-  getKey: 'https://thestatic.tv/admin/login',
+  getKey: 'https://thestatic.tv/login',
   github: 'https://github.com/thestatic-tv/thestatic-dcl-pro'
 }
 

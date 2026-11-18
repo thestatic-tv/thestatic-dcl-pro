@@ -106,6 +106,6 @@ thestatic-dcl-pro/
 
 ## Resources
 
-- [Get API Key](https://thestatic.tv/admin/login)
+- [Get API Key](https://thestatic.tv/login)
 - [SDK on npm](https://www.npmjs.com/package/@thestatic-tv/dcl-sdk)
 - [thestatic.tv](https://thestatic.tv)
